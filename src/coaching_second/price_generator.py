@@ -4,13 +4,13 @@ from abc import ABC, abstractmethod
 
 PRICE_MIN, PRICE_MAX = 10, 50
 QUANTITY_MIN, QUANTITY_MAX = 1000, 10000
-NUM_INSTRUMENTS = 10  # Seulement 10 instruments
+NUM_INSTRUMENTS = 10  # on fait 10 instruments
 
 def generate_instrument_ids():
     """Génère une liste de 10 identifiants uniques de 4 lettres."""
     return [''.join(random.choices(string.ascii_uppercase, k=4)) for _ in range(NUM_INSTRUMENTS)]
 
-INSTRUMENT_IDS = generate_instrument_ids()  # Liste des IDs d'instruments
+INSTRUMENT_IDS = generate_instrument_ids()  # ID des instruments
 
 class PriceGenerator(ABC):
     @abstractmethod
@@ -23,7 +23,7 @@ class RandomPriceGenerator(PriceGenerator):
     
     def generate_price(self, instrument_id):
         last_price = self.instrument_prices[instrument_id]
-        change = random.uniform(-0.1, 0.1)  # Volatilité modérée
+        change = random.uniform(-0.1, 0.1)  # Vol
         new_bid_price = max(PRICE_MIN, min(PRICE_MAX, last_price + change))
         new_ask_price = new_bid_price + random.uniform(0.1, 1.0)
         bid_quantity = random.randint(QUANTITY_MIN, QUANTITY_MAX)

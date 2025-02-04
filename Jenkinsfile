@@ -1,58 +1,60 @@
 pipeline {
-    agent any
+    agent any  // Exécuter sur n'importe quel agent
 
     environment {
-        PYPI_USERNAME = credentials('pypi-username')  // Identifiants PyPI
-        PYPI_PASSWORD = credentials('pypi-token')     // Token API PyPI
+        VENV = 'venv'  // Nom du virtualenv
     }
 
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
+                git branch: 'main', url: 'https://github.com/ton-utilisateur/ton-repo.git'
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Setup Python Environment') {
             steps {
+                sh 'python3 -m venv $VENV'
+                sh 'source $VENV/bin/activate'
+                sh 'pip install --upgrade pip'
                 sh 'pip install -r requirements.txt'
             }
         }
 
         stage('Run Tests') {
             steps {
-                sh 'pytest tests/ --junitxml=results.xml'
+                sh 'source $VENV/bin/activate && pytest tests/ --junitxml=report.xml'
             }
         }
 
-        stage('Build Package') {
+        stage('Lint Code') {
             steps {
-                sh '''
-                python setup.py sdist bdist_wheel
-                '''
+                sh 'source $VENV/bin/activate && flake8 src/'
             }
         }
 
-        stage('Publish to PyPI') {
+        stage('Build Docker Image') {
             steps {
-                sh '''
-                python -m pip install twine
-                twine upload --repository pypi dist/* \
-                    -u ${PYPI_USERNAME} -p ${PYPI_PASSWORD}
-                '''
+                sh 'docker build -t coaching2-app .'
+            }
+        }
+
+        stage('Deploy Locally') {
+            steps {
+                sh 'docker run -d -p 8000:8000 coaching2-app'
             }
         }
     }
 
     post {
         always {
-            archiveArtifacts artifacts: '**/results.xml', fingerprint: true
+            junit 'report.xml'  // Générer les rapports de test
         }
         success {
-            echo 'Package publié avec succès sur PyPI.'
+            echo "Déploiement réussi 🎉"
         }
         failure {
-            echo 'Échec du pipeline.'
+            echo "Échec du pipeline ❌"
         }
     }
 }
